@@ -77,20 +77,23 @@ namespace Replacer
 
         private void ReplaceButton_Click(object sender, RoutedEventArgs e)
         {
-            var tuples = ReadExcelData(excelFilePath);
+            var dictionary = ReadExcelData(excelFilePath);
             var textStrings = File.ReadAllLines(textFilePath);
 
             for(int i = 0; i < textStrings.Length; i++)
             {
                 var currentLine = textStrings[i];
-                var currentTuple = tuples[i];
-                if (currentLine.Contains(currentTuple.Item1))
-                {
-                    currentLine = currentLine.Replace(currentTuple.Item1, currentTuple.Item2);
-                    textStrings[i] = currentLine;
-                }
-                    
+
+                if (!currentLine.StartsWith("<ProductView "))
+                    continue;
+                var mainString = currentLine.Split(' ')[2].Split('=')[1].Trim('"');
+                if (!dictionary.ContainsKey(mainString))
+                    continue;
+                currentLine = currentLine.Replace(mainString, dictionary[mainString]);
+                textStrings[i] = currentLine;       
             }
+
+
             var fileName = Path.GetFileName(textFilePath).Split('.')[0];
             var snapshotDirectory = Path.Combine(Directory.GetParent(textFilePath).FullName, "Snapshot.plmxml");
             if(Directory.Exists(snapshotDirectory))
@@ -153,9 +156,10 @@ namespace Replacer
             zipStream.Write(bytes, 0, bytes.Length);
         }
 
-        private List<Tuple<string,string>> ReadExcelData(string fileName)
+        private Dictionary<string,string> ReadExcelData(string fileName)
         {
-            List<Tuple<string, string>> tuples = new List<Tuple<string, string>>();
+            Dictionary<string, string> dict = new Dictionary<string, string>();
+            //List<Tuple<string, string>> tuples = new List<Tuple<string, string>>();
 
             string conn = string.Empty;
             DataTable dtexcel = new DataTable();
@@ -179,10 +183,11 @@ namespace Replacer
                 var replacableString = currentRow[1] as string;
 
                 if (!string.IsNullOrEmpty(mainStirng) && !string.IsNullOrEmpty(replacableString))
-                    tuples.Add(new Tuple<string, string>(mainStirng, replacableString)) ;
+                    dict.Add(mainStirng, replacableString);
+                        //tuples.Add(new Tuple<string, string>(mainStirng, replacableString)) ;
             }
 
-            return tuples;
+            return dict;
         }
     }
 }
