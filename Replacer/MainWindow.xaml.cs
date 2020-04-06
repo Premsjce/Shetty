@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.OleDb;
 using System.IO;
 using System.IO.Compression;
+using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace Replacer
@@ -84,12 +85,17 @@ namespace Replacer
             {
                 var currentLine = textStrings[i];
 
-                if (!currentLine.StartsWith("<ProductView "))
-                    continue;
-                var mainString = currentLine.Split(' ')[2].Split('=')[1].Trim('"');
-                if (!dictionary.ContainsKey(mainString))
-                    continue;
-                currentLine = currentLine.Replace(mainString, dictionary[mainString]);
+                var stringsInQuotes = new Regex("\".*?\"").Matches(currentLine);
+                foreach(var str in stringsInQuotes)
+                {
+                    var strWithTrim = str.ToString().Trim('"');
+
+                    if (dictionary.ContainsKey(strWithTrim))
+                    {
+                        currentLine = currentLine.Replace(strWithTrim, dictionary[strWithTrim]);
+                    }
+                }
+                
                 textStrings[i] = currentLine;       
             }
 
